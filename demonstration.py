@@ -79,6 +79,21 @@ class Demonstration(object):
         self.snapshots[len(self)] = ale.encodeState(state_ptr)
         ale.deleteState(state_ptr)
 
+    def restore_timestep(self, ale, t):
+        """
+        Restore the emulator to a certain time step of the demonstration.
+        N.B. Restoring the system state does not give a valid RAM or screen
+        state until a step is taken in the emulator.
+        """
+        assert t > 0, "cannot restore initial state"
+        # restore preceding snapshot
+        snapshot_t = max(filter(lambda idx: idx < t, self.snapshots.keys()))
+        snapshot = ale.decodeState(self.snapshots[snapshot_t])
+        ale.restoreSystemState(snapshot)
+        # seek through demonstration by following actions in emulator
+        for idx in range(snapshot_t, t):
+            ale.act(self.actions[idx])
+
     def reset_to_timestep(self, t):
         for key in self.snapshots.keys():
             if key > t:
