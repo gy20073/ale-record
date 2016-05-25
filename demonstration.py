@@ -87,7 +87,7 @@ class Demonstration(object):
         del self.actions[t:]
         del self.rewards[t:]
         del self.game_over[t:]
-        
+
     def reset_to_latest_snapshot(self, ale):
         latest = max(self.snapshots.keys())
         self.reset_to_timestep(latest)
