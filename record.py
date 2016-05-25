@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import random
 import time
 
 import ale_python_interface as ALE
@@ -97,14 +96,14 @@ def resume(partial_demo, output, frames, episodes, rom):
     demo.reset_to_latest_snapshot(ale)
     record(ale, demo, output, frames, episodes)
 
-def record(ale, demo, output, num_frames, num_episodes, snapshot_chance=0.001):
+def record(ale, demo, output, num_frames, num_episodes):
     keystates = {key: False for key in keys}
     score = 0
     clock = pygame.time.Clock()
     episodes = 0
     try:
         while len(demo) < num_frames:
-            if random.uniform(0, 1) < snapshot_chance:
+            if len(demo) % demo.snapshot_interval == 0:
                 demo.snapshot(ale)
             frame = ale.getScreenRGB()
             update_keystates(keystates)
