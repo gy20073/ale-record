@@ -72,6 +72,7 @@ def record_new(rom, output, frames, episodes, seed):
     ale = ALE.ALEInterface()
     ale.setInt('random_seed', seed)
     ale.setFloat('repeat_action_probability', 0)
+    ale.setBool('color_averaging', False)
     ale.setBool('display_screen', True)
     ale.loadROM(rom)
     demo = Demonstration(rom, ale.getMinimalActionSet())
@@ -88,6 +89,7 @@ def resume(partial_demo, output, frames, episodes, rom):
     demo = Demonstration.load(partial_demo)
     ale = ALE.ALEInterface()
     ale.setFloat('repeat_action_probability', 0)
+    ale.setBool('color_averaging', False)
     ale.setBool('display_screen', True)
     if not rom:
         ale.loadROM(demo.rom)
