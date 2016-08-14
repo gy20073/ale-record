@@ -1,4 +1,3 @@
 [submodule "Arcade-Learning-Environment"]
 	path = Arcade-Learning-Environment
-	url = git@github.com:erictzeng/Arcade-Learning-Environment.git
-        ignore = dirty
+	url = git@github.com:shelhamer/Arcade-Learning-Environment.git
