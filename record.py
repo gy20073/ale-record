@@ -75,7 +75,7 @@ def record_new(rom, output, frames, episodes, seed):
     ale.setBool('color_averaging', False)
     ale.setBool('display_screen', True)
     ale.loadROM(rom)
-    demo = Demonstration(rom, ale.getMinimalActionSet())
+    demo = Demonstration()
     record(ale, demo, output, frames, episodes)
 
 @cli.command(name='resume')
@@ -111,11 +111,11 @@ def record(ale, demo, output, num_frames, num_episodes):
             action = keystates_to_ale_action(keystates)
             reward = ale.act(action)
             score += reward
-            demo.record_timestep(frame, action, reward, False)
+            demo.record_timestep(frame, action, reward)
             game_over = ale.game_over()
             if game_over:
                 # record final frame
-                demo.record_timestep(ale.getScreenRGB(), 0, 0, True)
+                demo.end_episode()
                 episodes += 1
                 print 'game over, score: {}'.format(score)
                 if num_episodes > 0 and episodes >= num_episodes:
