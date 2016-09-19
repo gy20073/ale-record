@@ -34,7 +34,7 @@ class Demonstration(object):
                         self.rewards[index], self.terminals[index])
 
     def save(self, path):
-        with h5py.File(path, 'w') as f:
+        with h5py.File(path, 'w', libver='latest') as f:
             S = f.create_dataset('S', (len(self), ) + self.states[0].shape, dtype='uint8', compression='gzip', data=np.array(self.states))
             A = f.create_dataset('A', (len(self), ), dtype='uint8', data=np.array(self.actions))
             R = f.create_dataset('R', (len(self), ), dtype='int32', data=np.array(self.rewards))
@@ -82,7 +82,7 @@ class Demonstration(object):
     @staticmethod
     def load(path):
         demo = Demonstration()
-        with h5py.File(path, 'r') as f:
+        with h5py.File(path, 'r', libver='latest') as f:
             demo.rom = f['rom'].value
             demo.states = [s for s in np.array(f['S'])]  # don't worry, this is fine
             demo.actions = list(f['A'])
