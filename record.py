@@ -80,23 +80,22 @@ def record_new(rom, output, frames, episodes, seed):
 
 @cli.command(name='resume')
 @click.argument('partial_demo', type=click.Path(exists=True))
-@click.argument('output', type=click.Path())
+@click.argument('rom', type=click.Path(exists=True))
 @click.option('--frames', default=60 * 60 * 30, help="Maximum number of frames")
 @click.option('--episodes', default=0, help="Maximum number of episodes (game overs)")
-@click.option('--seed', default=0, help="Seed for emulator state")
-def resume(partial_demo, output, frames, episodes, rom):
+def resume(partial_demo, rom, frames, episodes):
     pygame.init()
     demo = Demonstration.load(partial_demo)
     ale = ALE.ALEInterface()
     ale.setFloat('repeat_action_probability', 0)
     ale.setBool('color_averaging', False)
     ale.setBool('display_screen', True)
-    if not rom:
-        ale.loadROM(demo.rom)
-    else:
-        ale.loadROM(rom)
+    ale.loadROM(rom)
+    # restore snapshot from original recording + begin new episode
+    # n.b. needed to preserve state from the original recording, like the seed
     demo.reset_to_latest_snapshot(ale)
-    record(ale, demo, output, frames, episodes)
+    ale.reset_game()
+    record(ale, demo, partial_demo, frames, episodes)
 
 def record(ale, demo, output, num_frames, num_episodes):
     keystates = {key: False for key in keys}
