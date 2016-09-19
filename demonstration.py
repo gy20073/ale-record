@@ -9,8 +9,9 @@ class Demonstration(object):
 
     snapshot_interval = 1000
 
-    def __init__(self, rom=None):
+    def __init__(self, rom=None, action_set=None):
         self.rom = rom  # rom name as identified by ALE
+        self.action_set = action_set # action indices for ALE
         self.states = []
         self.actions = []
         self.rewards = []
@@ -37,6 +38,7 @@ class Demonstration(object):
     def save(self, path):
         with h5py.File(path, 'w', libver='latest') as f:
             rom = f.create_dataset('rom', data=np.string_(self.rom))
+            action_set = f.create_dataset('action_set', (len(self.action_set), ), dtype='uint8', data=np.array(self.action_set))
             S = f.create_dataset('S', (len(self), ) + self.states[0].shape, dtype='uint8', compression='gzip', data=np.array(self.states))
             A = f.create_dataset('A', (len(self), ), dtype='uint8', data=np.array(self.actions))
             R = f.create_dataset('R', (len(self), ), dtype='int32', data=np.array(self.rewards))
@@ -86,6 +88,7 @@ class Demonstration(object):
         demo = Demonstration()
         with h5py.File(path, 'r', libver='latest') as f:
             demo.rom = f['rom'].value
+            demo.action_set = list(f['action_set'])
             demo.states = [s for s in np.array(f['S'])]  # don't worry, this is fine
             demo.actions = list(f['A'])
             demo.rewards = list(f['R'])

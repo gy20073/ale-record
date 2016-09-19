@@ -77,7 +77,7 @@ def record_new(rom, output, frames, episodes, seed):
     ale.setBool('color_averaging', False)
     ale.setBool('display_screen', True)
     ale.loadROM(rom)
-    demo = Demonstration(rom=rom_name)
+    demo = Demonstration(rom=rom_name, action_set=ale.getMinimalActionSet())
     record(ale, demo, output, frames, episodes)
 
 @cli.command(name='resume')
