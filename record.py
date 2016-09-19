@@ -118,8 +118,9 @@ def record(ale, demo, output, num_frames, num_episodes, snapshot_interval):
             demo.record_timestep(frame, action, reward)
             game_over = ale.game_over()
             if game_over:
-                # record final frame
+                # record end of episode w/ snapshot for resuming
                 demo.end_episode()
+                demo.snapshot(ale)
                 episodes += 1
                 print 'game over, score: {}'.format(score)
                 if num_episodes > 0 and episodes >= num_episodes:
@@ -134,7 +135,7 @@ def record(ale, demo, output, num_frames, num_episodes, snapshot_interval):
     except KeyboardInterrupt:
         pass
     finally:
-        demo.snapshot(ale)
+        demo.discard_incomplete_episode()
         demo.save(output)
 
 if __name__ == '__main__':

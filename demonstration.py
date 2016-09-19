@@ -35,6 +35,9 @@ class Demonstration(object):
                         self.rewards[index], self.terminals[index])
 
     def save(self, path):
+        # don't record partial, single episode demonstrations
+        if not len(self):
+            return
         with h5py.File(path, 'w', libver='latest') as f:
             # metadata
             rom = f.create_dataset('rom', data=np.string_(self.rom))
@@ -84,6 +87,16 @@ class Demonstration(object):
         state_ptr = ale.decodeState(state_enc)
         ale.restoreSystemState(state_ptr)
         ale.deleteState(state_ptr)
+
+    def discard_incomplete_episode(self):
+        if np.sum(self.terminals):
+            # rollback recording to end of last episode
+            last_episode_start = np.max(np.where(self.terminals)) + 1
+            self.reset_to_timestep(last_episode_start)
+        else:
+            # incomplete single episode: reset
+            self.__init__(rom=self.rom, action_set=self.action_set)
+
 
     @staticmethod
     def load(path):
