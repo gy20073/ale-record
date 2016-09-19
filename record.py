@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import time
+import os
 
 import ale_python_interface as ALE
 import click
@@ -68,6 +69,7 @@ def cli():
 @click.option('--episodes', default=0, help="Maximum number of episodes (game overs)")
 @click.option('--seed', default=0, help="Seed for emulator state")
 def record_new(rom, output, frames, episodes, seed):
+    rom_name = os.path.splitext(os.path.split(rom)[-1])[0]
     pygame.init()
     ale = ALE.ALEInterface()
     ale.setInt('random_seed', seed)
@@ -75,7 +77,7 @@ def record_new(rom, output, frames, episodes, seed):
     ale.setBool('color_averaging', False)
     ale.setBool('display_screen', True)
     ale.loadROM(rom)
-    demo = Demonstration()
+    demo = Demonstration(rom=rom_name)
     record(ale, demo, output, frames, episodes)
 
 @cli.command(name='resume')

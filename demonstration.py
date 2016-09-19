@@ -9,7 +9,8 @@ class Demonstration(object):
 
     snapshot_interval = 1000
 
-    def __init__(self):
+    def __init__(self, rom=None):
+        self.rom = rom  # rom name as identified by ALE
         self.states = []
         self.actions = []
         self.rewards = []
@@ -35,6 +36,7 @@ class Demonstration(object):
 
     def save(self, path):
         with h5py.File(path, 'w', libver='latest') as f:
+            rom = f.create_dataset('rom', data=np.string_(self.rom))
             S = f.create_dataset('S', (len(self), ) + self.states[0].shape, dtype='uint8', compression='gzip', data=np.array(self.states))
             A = f.create_dataset('A', (len(self), ), dtype='uint8', data=np.array(self.actions))
             R = f.create_dataset('R', (len(self), ), dtype='int32', data=np.array(self.rewards))
