@@ -7,7 +7,6 @@ Timestep = namedtuple('Timestep', ['state', 'action', 'reward', 'terminal'])
 
 class Demonstration(object):
 
-    snapshot_interval = 1000
 
     def __init__(self, rom=None, action_set=None):
         self.rom = rom  # rom name as identified by ALE

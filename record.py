@@ -68,7 +68,8 @@ def cli():
 @click.option('--frames', default=60 * 60 * 30, help="Maximum number of frames")
 @click.option('--episodes', default=0, help="Maximum number of episodes (game overs)")
 @click.option('--seed', default=0, help="Seed for emulator state")
-def record_new(rom, output, frames, episodes, seed):
+@click.option('--snapshot_interval', default=1800, help="Interval (in timesteps) to snapshot emulator state")
+def record_new(rom, output, frames, episodes, seed, snapshot_interval):
     rom_name = os.path.splitext(os.path.split(rom)[-1])[0]
     pygame.init()
     ale = ALE.ALEInterface()
@@ -78,14 +79,15 @@ def record_new(rom, output, frames, episodes, seed):
     ale.setBool('display_screen', True)
     ale.loadROM(rom)
     demo = Demonstration(rom=rom_name, action_set=ale.getMinimalActionSet())
-    record(ale, demo, output, frames, episodes)
+    record(ale, demo, output, frames, episodes, snapshot_interval)
 
 @cli.command(name='resume')
 @click.argument('partial_demo', type=click.Path(exists=True))
 @click.argument('rom', type=click.Path(exists=True))
 @click.option('--frames', default=60 * 60 * 30, help="Maximum number of frames")
 @click.option('--episodes', default=0, help="Maximum number of episodes (game overs)")
-def resume(partial_demo, rom, frames, episodes):
+@click.option('--snapshot_interval', default=1800, help="Interval (in timesteps) to snapshot emulator state")
+def resume(partial_demo, rom, frames, episodes, snapshot_interval):
     pygame.init()
     demo = Demonstration.load(partial_demo)
     ale = ALE.ALEInterface()
@@ -97,16 +99,16 @@ def resume(partial_demo, rom, frames, episodes):
     # n.b. needed to preserve state from the original recording, like the seed
     demo.reset_to_latest_snapshot(ale)
     ale.reset_game()
-    record(ale, demo, partial_demo, frames, episodes)
+    record(ale, demo, partial_demo, frames, episodes, snapshot_interval)
 
-def record(ale, demo, output, num_frames, num_episodes):
+def record(ale, demo, output, num_frames, num_episodes, snapshot_interval):
     keystates = {key: False for key in keys}
     score = 0
     clock = pygame.time.Clock()
     episodes = 0
     try:
         while len(demo) < num_frames:
-            if len(demo) % demo.snapshot_interval == 0:
+            if len(demo) % snapshot_interval == 0:
                 demo.snapshot(ale)
             frame = ale.getScreenRGB()
             update_keystates(keystates)
