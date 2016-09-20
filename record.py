@@ -106,29 +106,37 @@ def record(ale, demo, output, num_frames, num_episodes, snapshot_interval):
     score = 0
     clock = pygame.time.Clock()
     episodes = 0
+    lives = ale.lives()
     try:
         while len(demo) < num_frames:
             if len(demo) % snapshot_interval == 0:
                 demo.snapshot(ale)
+            # collect transition
             frame = ale.getScreenRGB()
             update_keystates(keystates)
             action = keystates_to_ale_action(keystates)
             reward = ale.act(action)
             score += reward
             demo.record_timestep(frame, action, reward)
-            game_over = ale.game_over()
-            if game_over:
-                # record end of episode w/ snapshot for resuming
+            # end episode on game over or loss of life (by convention)
+            end_of_episode = ale.game_over() or ale.lives() < lives
+            if ale.lives() > lives:
+                lives = ale.lives()
+            if end_of_episode:
+                # record terminal, take snapshot for resuming, advance to next
                 demo.end_episode()
                 demo.snapshot(ale)
                 episodes += 1
-                print 'game over, score: {}'.format(score)
                 if num_episodes > 0 and episodes >= num_episodes:
                     break
-                print 'restarting in 5 seconds'
-                score = 0
-                time.sleep(5)
-                ale.reset_game()
+                if ale.game_over():
+                    # only reset on game over
+                    print 'game over, score: {}'.format(score)
+                    print 'restarting in 5 seconds'
+                    score = 0
+                    time.sleep(5)
+                    ale.reset_game()
+                lives = ale.lives()
             clock.tick(60)
             if len(demo) % 10000 == 0:
                 print 'FPS:', clock.get_fps()
