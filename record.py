@@ -117,7 +117,7 @@ def record(ale, demo, output, num_frames, num_episodes, snapshot_interval):
             action = keystates_to_ale_action(keystates)
             reward = ale.act(action)
             score += reward
-            demo.record_timestep(frame, action, reward)
+            demo.record_timestep(frame, action, reward, lives)
             # end episode on game over or loss of life (by convention)
             end_of_episode = ale.game_over() or ale.lives() < lives
             if ale.lives() > lives:
