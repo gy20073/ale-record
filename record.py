@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import time
+import os
 
 import ale_python_interface as ALE
 import click
@@ -67,7 +68,9 @@ def cli():
 @click.option('--frames', default=60 * 60 * 30, help="Maximum number of frames")
 @click.option('--episodes', default=0, help="Maximum number of episodes (game overs)")
 @click.option('--seed', default=0, help="Seed for emulator state")
-def record_new(rom, output, frames, episodes, seed):
+@click.option('--snapshot_interval', default=1800, help="Interval (in timesteps) to snapshot emulator state")
+def record_new(rom, output, frames, episodes, seed, snapshot_interval):
+    rom_name = os.path.splitext(os.path.split(rom)[-1])[0]
     pygame.init()
     ale = ALE.ALEInterface()
     ale.setInt('random_seed', seed)
@@ -75,63 +78,72 @@ def record_new(rom, output, frames, episodes, seed):
     ale.setBool('color_averaging', False)
     ale.setBool('display_screen', True)
     ale.loadROM(rom)
-    demo = Demonstration(rom, ale.getMinimalActionSet())
-    record(ale, demo, output, frames, episodes)
+    demo = Demonstration(rom=rom_name, action_set=ale.getMinimalActionSet())
+    record(ale, demo, output, frames, episodes, snapshot_interval)
 
 @cli.command(name='resume')
 @click.argument('partial_demo', type=click.Path(exists=True))
-@click.argument('output', type=click.Path())
+@click.argument('rom', type=click.Path(exists=True))
 @click.option('--frames', default=60 * 60 * 30, help="Maximum number of frames")
 @click.option('--episodes', default=0, help="Maximum number of episodes (game overs)")
-@click.option('--seed', default=0, help="Seed for emulator state")
-def resume(partial_demo, output, frames, episodes, rom):
+@click.option('--snapshot_interval', default=1800, help="Interval (in timesteps) to snapshot emulator state")
+def resume(partial_demo, rom, frames, episodes, snapshot_interval):
     pygame.init()
     demo = Demonstration.load(partial_demo)
     ale = ALE.ALEInterface()
     ale.setFloat('repeat_action_probability', 0)
     ale.setBool('color_averaging', False)
     ale.setBool('display_screen', True)
-    if not rom:
-        ale.loadROM(demo.rom)
-    else:
-        ale.loadROM(rom)
+    ale.loadROM(rom)
+    # restore snapshot from original recording + begin new episode
+    # n.b. needed to preserve state from the original recording, like the seed
     demo.reset_to_latest_snapshot(ale)
-    record(ale, demo, output, frames, episodes)
+    ale.reset_game()
+    record(ale, demo, partial_demo, frames, episodes, snapshot_interval)
 
-def record(ale, demo, output, num_frames, num_episodes):
+def record(ale, demo, output, num_frames, num_episodes, snapshot_interval):
     keystates = {key: False for key in keys}
     score = 0
     clock = pygame.time.Clock()
     episodes = 0
+    lives = ale.lives()
     try:
         while len(demo) < num_frames:
-            if len(demo) % demo.snapshot_interval == 0:
+            if len(demo) % snapshot_interval == 0:
                 demo.snapshot(ale)
+            # collect transition
             frame = ale.getScreenRGB()
             update_keystates(keystates)
             action = keystates_to_ale_action(keystates)
             reward = ale.act(action)
             score += reward
-            demo.record_timestep(frame, action, reward, False)
-            game_over = ale.game_over()
-            if game_over:
-                # record final frame
-                demo.record_timestep(ale.getScreenRGB(), 0, 0, True)
+            demo.record_timestep(frame, action, reward)
+            # end episode on game over or loss of life (by convention)
+            end_of_episode = ale.game_over() or ale.lives() < lives
+            if ale.lives() > lives:
+                lives = ale.lives()
+            if end_of_episode:
+                # record terminal, take snapshot for resuming, advance to next
+                demo.end_episode()
+                demo.snapshot(ale)
                 episodes += 1
-                print 'game over, score: {}'.format(score)
                 if num_episodes > 0 and episodes >= num_episodes:
                     break
-                print 'restarting in 5 seconds'
-                score = 0
-                time.sleep(5)
-                ale.reset_game()
+                if ale.game_over():
+                    # only reset on game over
+                    print 'game over, score: {}'.format(score)
+                    print 'restarting in 5 seconds'
+                    score = 0
+                    time.sleep(5)
+                    ale.reset_game()
+                lives = ale.lives()
             clock.tick(60)
             if len(demo) % 10000 == 0:
                 print 'FPS:', clock.get_fps()
     except KeyboardInterrupt:
         pass
     finally:
-        demo.snapshot(ale)
+        demo.discard_incomplete_episode()
         demo.save(output)
 
 if __name__ == '__main__':
