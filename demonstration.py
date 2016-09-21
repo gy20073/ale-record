@@ -45,7 +45,7 @@ class Demonstration(object):
             rom = f.create_dataset('rom', data=np.string_(self.rom))
             action_set = f.create_dataset('action_set', (len(self.action_set), ), dtype='uint8', data=np.array(self.action_set))
             # transitions
-            S = f.create_dataset('S', (len(self), ) + self.states[0].shape, dtype='uint8', compression='gzip', data=np.array(self.states))
+            S = f.create_dataset('S', (len(self), ) + self.states[0].shape, dtype='uint8', compression='lzf', data=np.array(self.states))
             A = f.create_dataset('A', (len(self), ), dtype='uint8', data=np.array(self.actions))
             R = f.create_dataset('R', (len(self), ), dtype='int32', data=np.array(self.rewards))
             terminal = f.create_dataset('terminal', (len(self), ), dtype='b', data=np.array(self.terminals))
