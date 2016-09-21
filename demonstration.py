@@ -15,13 +15,15 @@ class Demonstration(object):
         self.actions = []
         self.rewards = []
         self.terminals = []
+        self.lives = []
         self.snapshots = {}
 
-    def record_timestep(self, screen_rgb, action, reward):
+    def record_timestep(self, screen_rgb, action, reward, lives):
         self.states.append(screen_rgb)
         self.actions.append(action)
         self.rewards.append(reward)
         self.terminals.append(False)
+        self.lives.append(lives)
 
     def end_episode(self):
         # TODO(shelhamer) save episode at a time?
@@ -47,6 +49,7 @@ class Demonstration(object):
             A = f.create_dataset('A', (len(self), ), dtype='uint8', data=np.array(self.actions))
             R = f.create_dataset('R', (len(self), ), dtype='int32', data=np.array(self.rewards))
             terminal = f.create_dataset('terminal', (len(self), ), dtype='b', data=np.array(self.terminals))
+            lives = f.create_dataset('lives', (len(self), ), dtype='uint8', data=np.array(self.lives))
             # emulator state
             snapshot = f.create_dataset('snapshot', (len(self.snapshots), ) + self.snapshots.values()[0].shape, dtype='uint8', data=np.array(self.snapshots.values()))
             snapshot_t = f.create_dataset('snapshot_t', (len(self.snapshots), ) , dtype='uint32', data=np.array(self.snapshots.keys()))
@@ -79,6 +82,7 @@ class Demonstration(object):
         del self.actions[t:]
         del self.rewards[t:]
         del self.terminals[t:]
+        del self.lives[t:]
 
     def reset_to_latest_snapshot(self, ale):
         latest = max(self.snapshots.keys())
@@ -108,5 +112,6 @@ class Demonstration(object):
             demo.actions = list(f['A'])
             demo.rewards = list(f['R'])
             demo.terminals = list(f['terminal'])
+            demo.lives = list(f['lives'])
             demo.snapshots = dict(zip(list(f['snapshot_t']), list(f['snapshot'])))
         return demo
