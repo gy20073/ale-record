@@ -7,6 +7,7 @@ Timestep = namedtuple('Timestep', ['state', 'action', 'reward', 'terminal'])
 
 class Demonstration(object):
 
+    VERSION = 1
 
     def __init__(self, rom=None, action_set=None):
         self.rom = rom  # rom name as identified by ALE
@@ -42,6 +43,7 @@ class Demonstration(object):
             return
         with h5py.File(path, 'w', libver='latest') as f:
             # metadata
+            version = f.create_dataset('version', (1, ), dtype='uint8', data=Demonstration.VERSION)
             rom = f.create_dataset('rom', data=np.string_(self.rom))
             action_set = f.create_dataset('action_set', (len(self.action_set), ), dtype='uint8', data=np.array(self.action_set))
             # transitions
@@ -106,6 +108,12 @@ class Demonstration(object):
     def load(path):
         demo = Demonstration()
         with h5py.File(path, 'r', libver='latest') as f:
+            try:
+                version = f['version'].value[0]
+            except:
+                version = 1
+            if version != Demonstration.VERSION:
+                raise Exception("Format conflict: file is v{} but code is v{}.".format(version, Demonstration.VERSION))
             demo.rom = f['rom'].value
             demo.action_set = list(f['action_set'])
             demo.states = [s for s in np.array(f['S'])]  # don't worry, this is fine
