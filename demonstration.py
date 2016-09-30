@@ -7,7 +7,7 @@ Timestep = namedtuple('Timestep', ['state', 'action', 'reward', 'terminal'])
 
 class Demonstration(object):
 
-    VERSION = 1
+    VERSION = 2
 
     def __init__(self, rom=None, action_set=None):
         self.rom = rom  # rom name as identified by ALE
