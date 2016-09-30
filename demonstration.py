@@ -11,7 +11,7 @@ class Demonstration(object):
 
     def __init__(self, rom=None, action_set=None):
         self.rom = rom  # rom name as identified by ALE
-        self.action_set = action_set # action indices for ALE
+        self.action_set = action_set  # action indices for ALE
         self.states = []
         self.actions = []
         self.rewards = []
@@ -54,7 +54,7 @@ class Demonstration(object):
             lives = f.create_dataset('lives', (len(self), ), dtype='uint8', data=np.array(self.lives))
             # emulator state
             snapshot = f.create_dataset('snapshot', (len(self.snapshots), ) + self.snapshots.values()[0].shape, dtype='uint8', data=np.array(self.snapshots.values()))
-            snapshot_t = f.create_dataset('snapshot_t', (len(self.snapshots), ) , dtype='uint32', data=np.array(self.snapshots.keys()))
+            snapshot_t = f.create_dataset('snapshot_t', (len(self.snapshots), ), dtype='uint32', data=np.array(self.snapshots.keys()))
 
     def snapshot(self, ale):
         state_ptr = ale.cloneSystemState()
@@ -102,7 +102,6 @@ class Demonstration(object):
         else:
             # incomplete single episode: reset
             self.__init__(rom=self.rom, action_set=self.action_set)
-
 
     @staticmethod
     def load(path):
