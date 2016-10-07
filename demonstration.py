@@ -106,6 +106,7 @@ class Demonstration(object):
 
     @staticmethod
     def load(path):
+        """Load recorded demonstration metadata, transitions, and snapshots."""
         demo = Demonstration()
         with h5py.File(path, 'r', libver='latest') as f:
             try:
@@ -123,3 +124,15 @@ class Demonstration(object):
             demo.lives = list(f['lives'])
             demo.snapshots = dict(zip(list(f['snapshot_t']), list(f['snapshot'])))
         return demo
+
+    @staticmethod
+    def load_h5(path):
+        """Open raw h5 of the recorded demonstration and return for use."""
+        f = h5py.File(path, 'r', libver='latest')
+        try:
+            version = f['version'].value[0]
+        except:
+            version = 1
+        if version != Demonstration.VERSION:
+            raise Exception("Format conflict: file is v{} but code is v{}.".format(version, Demonstration.VERSION))
+        return f
