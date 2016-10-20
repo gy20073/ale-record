@@ -3,7 +3,7 @@
 Clone recursively to pull the modified version of ALE too:
 
 ```
-git clone git@github.com:erictzeng/ale-record.git --recursive
+git clone --recursive git@github.com:shelhamer/ale-record.git
 ```
 
 # Installation
