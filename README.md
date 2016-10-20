@@ -29,3 +29,15 @@ Finally, you'll need `Arcade-Learning-Environment` on your PYTHONPATH. You can
 `source .envrc` in the repo root, or install the excellent
 [direnv](git@github.com:direnv/direnv.git) to have it automatically modify your
 path whenever you enter this directory.
+
+# Usage
+
+`python record.py --help` will tell you the slighest bit about what to do.
+
+Invoking with
+
+```
+python record.py new roms/enduro.bin enduro.h5 --episodes 10
+```
+
+will fire up the recorder for 10 episodes of enduro, saving the demonstrations to enduro.h5, with a 30 minute limit on the demonstration time.
