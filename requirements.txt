@@ -1,0 +1,6 @@
+click==6.6
+h5py==2.6.0
+numpy==1.11.2
+Pillow==3.4.2
+pygame==1.9.2b6
+six==1.10.0
