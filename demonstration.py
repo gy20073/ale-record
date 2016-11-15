@@ -7,7 +7,7 @@ Timestep = namedtuple('Timestep', ['state', 'action', 'reward', 'terminal'])
 
 class Demonstration(object):
 
-    VERSION = 2
+    VERSION = 3
 
     def __init__(self, rom=None, action_set=None):
         self.rom = rom  # rom name as identified by ALE
@@ -21,6 +21,12 @@ class Demonstration(object):
 
     def record_timestep(self, screen_rgb, action, reward, lives):
         self.states.append(screen_rgb)
+        # record action as index, instead of absolute ALE action
+        if action in self.action_set:
+            action = self.action_set.index(action)
+        else:
+            # TODO(shelhamer) check that all non-minimal actions are no-ops
+            action = 0
         self.actions.append(action)
         self.rewards.append(reward)
         self.terminals.append(False)
@@ -46,6 +52,7 @@ class Demonstration(object):
             version = f.create_dataset('version', (1, ), dtype='uint8', data=Demonstration.VERSION)
             rom = f.create_dataset('rom', data=np.string_(self.rom))
             action_set = f.create_dataset('action_set', (len(self.action_set), ), dtype='uint8', data=np.array(self.action_set))
+            skip = f.create_dataset('skip', (1, ), dtype='uint8', data=1)
             # transitions
             state_shape = self.states[0].shape
             S = f.create_dataset('S', (len(self), ) + state_shape, dtype='uint8', compression='lzf', data=np.array(self.states))
