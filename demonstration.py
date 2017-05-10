@@ -20,12 +20,6 @@ class Demonstration(object):
 
     def record_timestep(self, screen_rgb, action, reward, lives):
         self.states.append(screen_rgb)
-        # record action as index, instead of absolute ALE action
-        if action in self.action_set:
-            action = self.action_set.index(action)
-        else:
-            # TODO(shelhamer) check that all non-minimal actions are no-ops
-            action = 0
         self.actions.append(action)
         self.rewards.append(reward)
         self.terminals.append(False)
@@ -62,12 +56,10 @@ class Demonstration(object):
             snapshot = f.create_dataset('snapshot', (len(self.snapshots), ) + snapshots[0].shape, dtype='uint8', data=np.array(snapshots))
             snapshot_t = f.create_dataset('snapshot_t', (len(self.snapshots), ), dtype='uint32', data=np.array(list(self.snapshots.keys())))
 
-    def snapshot(self, ale):
-        state_ptr = ale.cloneSystemState()
-        self.snapshots[len(self)] = ale.encodeState(state_ptr)
-        ale.deleteState(state_ptr)
+    def snapshot(self, env):
+        self.snapshots[len(self)] = env.unwrapped.clone_full_state()
 
-    def restore_timestep(self, ale, t):
+    def restore_timestep(self, env, t):
         """
         Restore the emulator to a certain time step of the demonstration.
         N.B. Restoring the system state does not give a valid RAM or screen
@@ -76,11 +68,10 @@ class Demonstration(object):
         assert t > 0, "cannot restore initial state"
         # restore preceding snapshot
         snapshot_t = max(filter(lambda idx: idx < t, self.snapshots.keys()))
-        snapshot = ale.decodeState(self.snapshots[snapshot_t])
-        ale.restoreSystemState(snapshot)
+        env.unwrapped.restore_full_state(self.snapshots[snapshot_t])
         # seek through demonstration by following actions in emulator
         for idx in range(snapshot_t, t):
-            ale.act(self.actions[idx])
+            env.step(self.actions[idx])
 
     def reset_to_timestep(self, t):
         for key in list(self.snapshots.keys()):
@@ -92,13 +83,10 @@ class Demonstration(object):
         del self.terminals[t:]
         del self.lives[t:]
 
-    def reset_to_latest_snapshot(self, ale):
+    def reset_to_latest_snapshot(self, env):
         latest = max(self.snapshots.keys())
         self.reset_to_timestep(latest)
-        state_enc = self.snapshots[latest]
-        state_ptr = ale.decodeState(state_enc)
-        ale.restoreSystemState(state_ptr)
-        ale.deleteState(state_ptr)
+        env.unwrapped.restore_full_state(self.snapshots[latest])
 
     def discard_incomplete_episode(self):
         if np.sum(self.terminals):

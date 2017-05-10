@@ -2,68 +2,68 @@
 import time
 import os
 
-import ale_python_interface as ALE
 import click
+import gym
 import pygame
 import pygame.locals as pl
 
 from demonstration import Demonstration
 
-keys = [pl.K_SPACE, pl.K_UP, pl.K_RIGHT, pl.K_LEFT, pl.K_DOWN]
+# taken from gym/util/play.py
+def display_arr(screen, arr, video_size):
+    pyg_img = pygame.surfarray.make_surface(arr.swapaxes(0, 1))
+    pyg_img = pygame.transform.scale(pyg_img, video_size)
+    screen.blit(pyg_img, (0,0))
 
-mapping = {
-    # dlruf
-    0b00000: 0,
-    0b00001: 1,
-    0b00010: 2,
-    0b00100: 3,
-    0b01000: 4,
-    0b10000: 5,
-    0b00110: 6,
-    0b01010: 7,
-    0b10100: 8,
-    0b11000: 9,
-    0b00011: 10,
-    0b00101: 11,
-    0b01001: 12,
-    0b10001: 13,
-    0b00111: 14,
-    0b01011: 15,
-    0b10101: 16,
-    0b11001: 17
-}
+def configure_keys(env):
+    keys_to_action = {}
+    # substitute WASD -> up, left, down, right arrows
+    wasd2arrows = {
+        pl.K_SPACE: pl.K_SPACE,
+        pl.K_w: pl.K_UP,
+        pl.K_a: pl.K_LEFT,
+        pl.K_s: pl.K_DOWN,
+        pl.K_d: pl.K_RIGHT,
+    }
+    wasd_keys_to_action = env.unwrapped.get_keys_to_action()
+    for ks, v in wasd_keys_to_action.items():
+        ks = tuple([wasd2arrows[k] for k in ks])
+        keys_to_action[ks] = v
+    # screen irrelevant keys
+    minimal_keys = set(sum(map(list, keys_to_action.keys()), []))
+    # map keystates to minimal actions
+    def keystates_to_action(keystates):
+        keys = keystates.copy()
+        # screen conflicting keys for no-ops
+        if pl.K_UP in keys and pl.K_DOWN in keys:
+            keys.remove(pl.K_UP)
+            keys.remove(pl.K_DOWN)
+        if pl.K_RIGHT in keys and pl.K_LEFT in keys:
+            keys.remove(pl.K_RIGHT)
+            keys.remove(pl.K_LEFT)
+        return keys_to_action[tuple(sorted(keys))]
+    return keystates_to_action, minimal_keys
 
-
-def keystates_to_ale_action(keystates):
-    keystates = dict(keystates)
-    if keystates[pl.K_UP] and keystates[pl.K_DOWN]:
-        keystates[pl.K_UP] = False
-        keystates[pl.K_DOWN] = False
-    if keystates[pl.K_LEFT] and keystates[pl.K_RIGHT]:
-        keystates[pl.K_LEFT] = False
-        keystates[pl.K_RIGHT] = False
-    bitvec = sum(2 ** i if keystates[key] else 0 for i, key in enumerate(keys))
-    assert bitvec in mapping
-    return mapping[bitvec]
-
-
-def update_keystates(keystates):
+def update_keystates(keystates, minimal_keys):
+    # track key down/up states
     events = pygame.event.get()
     for event in events:
-        if hasattr(event, 'key') and event.key == pl.K_ESCAPE:
-            exit(0)
-        if hasattr(event, 'key') and event.key in keys:
-            if event.type == pygame.KEYDOWN:
-                keystates[event.key] = True
-            elif event.type == pygame.KEYUP:
-                keystates[event.key] = False
+        if hasattr(event, 'key'):
+            if event.key == pl.K_ESCAPE:
+                exit(0)
+            if event.key in minimal_keys:
+                if event.type == pygame.KEYDOWN:
+                    keystates.append(event.key)
+                elif event.type == pygame.KEYUP:
+                    keystates.remove(event.key)
+    return keystates
 
 @click.group()
 def cli():
     pass
 
 @cli.command(name='new')
-@click.argument('rom', type=click.Path(exists=True))
+@click.argument('rom')
 @click.argument('output', type=click.Path())
 @click.option('--fps', default=60, help="frames per second to play")
 @click.option('--frames', default=60 * 60 * 30, help="Maximum number of frames")
@@ -71,69 +71,66 @@ def cli():
 @click.option('--seed', default=0, help="Seed for emulator state")
 @click.option('--snapshot_interval', default=1800, help="Interval (in timesteps) to snapshot emulator state")
 def record_new(rom, output, fps, frames, episodes, seed, snapshot_interval):
-    rom_name = os.path.splitext(os.path.split(rom)[-1])[0]
-    pygame.init()
-    ale = ALE.ALEInterface()
-    ale.setInt('random_seed', seed)
-    ale.setFloat('repeat_action_probability', 0)
-    ale.setBool('color_averaging', False)
-    ale.setBool('display_screen', True)
-    ale.loadROM(rom)
-    demo = Demonstration(rom=rom_name, action_set=ale.getMinimalActionSet())
+    env = gym.make('{}NoFrameskip-v3'.format(rom))
+    env.seed(seed)
+    demo = Demonstration(rom=rom)
     record(env, demo, output, fps, frames, episodes, snapshot_interval)
 
 @cli.command(name='resume')
 @click.argument('partial_demo', type=click.Path(exists=True))
-@click.argument('rom', type=click.Path(exists=True))
+@click.argument('rom')
 @click.option('--fps', default=60, help="frames per second to play")
 @click.option('--frames', default=60 * 60 * 30, help="Maximum number of frames")
 @click.option('--episodes', default=0, help="Maximum number of episodes (game overs)")
 @click.option('--snapshot_interval', default=1800, help="Interval (in timesteps) to snapshot emulator state")
 def resume(partial_demo, rom, fps, frames, episodes, snapshot_interval):
     demo = Demonstration.load(partial_demo)
-    ale = ALE.ALEInterface()
-    ale.setFloat('repeat_action_probability', 0)
-    ale.setBool('color_averaging', False)
-    ale.setBool('display_screen', True)
-    ale.loadROM(rom)
+    env = gym.make('{}NoFrameskip-v3'.format(rom))
     # restore snapshot from original recording + begin new episode
     # n.b. needed to preserve state from the original recording, like the seed
-    demo.reset_to_latest_snapshot(ale)
-    ale.reset_game()
+    demo.reset_to_latest_snapshot(env)
     record(env, demo, partial_demo, fps, frames, episodes, snapshot_interval)
 
 def record(env, demo, output, fps, num_frames, num_episodes, snapshot_interval):
-    keystates = {key: False for key in keys}
-    score = 0
+    # configure display and control
+    pygame.init()
     clock = pygame.time.Clock()
+    screen = pygame.display.set_mode(env.observation_space.shape[:2], pygame.FULLSCREEN|pygame.HWSURFACE)
+    keystates = []
+    keys_to_action, minimal_keys = configure_keys(env)
+    # begin recording
+    score = 0
     episodes = 0
+    obs = env.reset()
     try:
         while len(demo) < num_frames:
+            # update recording interface
+            display_arr(screen, obs, env.observation_space.shape[:2])
+            update_keystates(keystates, minimal_keys)
+            action = keys_to_action(keystates)
+            # collect data
             if len(demo) % snapshot_interval == 0:
-                demo.snapshot(ale)
-            # collect transition
-            frame = ale.getScreenRGB()
-            update_keystates(keystates)
-            action = keystates_to_ale_action(keystates)
-            reward = ale.act(action)
-            lives = ale.lives()
+                demo.snapshot(env)
+            obs_t = obs.copy()  # lag one obs. for state and not sucessor
+            obs, reward, done, _ = env.step(action)
+            lives = env.unwrapped.ale.lives()
             score += reward
-            demo.record_timestep(frame, action, reward, lives)
-            # end episode on game over
-            if ale.game_over():
+            demo.record_timestep(obs_t, action, reward, lives)
+            # end episode
+            if done:
+                episodes += 1
                 # record terminal, take snapshot for resuming, advance to next
                 demo.end_episode()
-                demo.snapshot(ale)
-                episodes += 1
+                demo.snapshot(env)
+                # reset on game over
                 print("game over, score: {}".format(score))
                 if num_episodes > 0 and episodes >= num_episodes:
                     break
-                if ale.game_over():
-                    # only reset on game over
-                    print("restarting in 5 seconds")
-                    score = 0
-                    time.sleep(5)
-                    ale.reset_game()
+                print("restarting in 5 seconds")
+                score = 0
+                time.sleep(5)
+                env.reset()
+            pygame.display.flip()
             clock.tick(fps)
             if len(demo) % 10000 == 0:
                 print("FPS:", clock.get_fps())

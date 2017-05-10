@@ -1,3 +1,7 @@
-[submodule "Arcade-Learning-Environment"]
-	path = Arcade-Learning-Environment
-	url = git@github.com:shelhamer/Arcade-Learning-Environment.git
+[submodule "gym"]
+	path = gym
+	url = git@github.com:shelhamer/gym.git
+	branch = atari-snapshot
+[submodule "atari-py"]
+	path = atari-py
+	url = git@github.com:openai/atari-py.git
