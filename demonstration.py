@@ -58,8 +58,9 @@ class Demonstration(object):
             terminal = f.create_dataset('terminal', (len(self), ), dtype='b', data=np.array(self.terminals))
             lives = f.create_dataset('lives', (len(self), ), dtype='uint8', data=np.array(self.lives))
             # emulator state
-            snapshot = f.create_dataset('snapshot', (len(self.snapshots), ) + self.snapshots.values()[0].shape, dtype='uint8', data=np.array(self.snapshots.values()))
-            snapshot_t = f.create_dataset('snapshot_t', (len(self.snapshots), ), dtype='uint32', data=np.array(self.snapshots.keys()))
+            snapshots = list(self.snapshots.values())
+            snapshot = f.create_dataset('snapshot', (len(self.snapshots), ) + snapshots[0].shape, dtype='uint8', data=np.array(snapshots))
+            snapshot_t = f.create_dataset('snapshot_t', (len(self.snapshots), ), dtype='uint32', data=np.array(list(self.snapshots.keys())))
 
     def snapshot(self, ale):
         state_ptr = ale.cloneSystemState()
@@ -82,7 +83,7 @@ class Demonstration(object):
             ale.act(self.actions[idx])
 
     def reset_to_timestep(self, t):
-        for key in self.snapshots.keys():
+        for key in list(self.snapshots.keys()):
             if key > t:
                 del self.snapshots[key]
         del self.states[t:]

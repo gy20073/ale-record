@@ -125,18 +125,18 @@ def record(env, demo, output, fps, num_frames, num_episodes, snapshot_interval):
                 demo.end_episode()
                 demo.snapshot(ale)
                 episodes += 1
+                print("game over, score: {}".format(score))
                 if num_episodes > 0 and episodes >= num_episodes:
                     break
                 if ale.game_over():
                     # only reset on game over
-                    print 'game over, score: {}'.format(score)
-                    print 'restarting in 5 seconds'
+                    print("restarting in 5 seconds")
                     score = 0
                     time.sleep(5)
                     ale.reset_game()
             clock.tick(fps)
             if len(demo) % 10000 == 0:
-                print 'FPS:', clock.get_fps()
+                print("FPS:", clock.get_fps())
     except KeyboardInterrupt:
         pass
     finally:
