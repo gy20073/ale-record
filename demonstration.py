@@ -9,9 +9,8 @@ class Demonstration(object):
 
     VERSION = 3
 
-    def __init__(self, rom=None, action_set=None):
-        self.rom = rom  # rom name as identified by ALE
-        self.action_set = action_set  # action indices for ALE
+    def __init__(self, rom=None):
+        self.rom = rom  # ROM name as identified by gym
         self.states = []
         self.actions = []
         self.rewards = []
@@ -51,11 +50,9 @@ class Demonstration(object):
             # metadata
             version = f.create_dataset('version', (1, ), dtype='uint8', data=Demonstration.VERSION)
             rom = f.create_dataset('rom', data=np.string_(self.rom))
-            action_set = f.create_dataset('action_set', (len(self.action_set), ), dtype='uint8', data=np.array(self.action_set))
-            skip = f.create_dataset('skip', (1, ), dtype='uint8', data=1)
             # transitions
             state_shape = self.states[0].shape
-            S = f.create_dataset('S', (len(self), ) + state_shape, dtype='uint8', compression='lzf', data=np.array(self.states))
+            S = f.create_dataset('S', (len(self), ) + state_shape, dtype='uint8', data=np.array(self.states))
             A = f.create_dataset('A', (len(self), ), dtype='uint8', data=np.array(self.actions))
             R = f.create_dataset('R', (len(self), ), dtype='int32', data=np.array(self.rewards))
             terminal = f.create_dataset('terminal', (len(self), ), dtype='b', data=np.array(self.terminals))
@@ -109,7 +106,7 @@ class Demonstration(object):
             self.reset_to_timestep(last_episode_start)
         else:
             # incomplete single episode: reset
-            self.__init__(rom=self.rom, action_set=self.action_set)
+            self.__init__(rom=self.rom)
 
     @staticmethod
     def load(path):
@@ -123,7 +120,6 @@ class Demonstration(object):
             if version != Demonstration.VERSION:
                 raise Exception("Format conflict: file is v{} but code is v{}.".format(version, Demonstration.VERSION))
             demo.rom = f['rom'].value
-            demo.action_set = list(f['action_set'])
             demo.states = [s for s in np.array(f['S'])]  # don't worry, this is fine
             demo.actions = list(f['A'])
             demo.rewards = list(f['R'])
