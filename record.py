@@ -65,11 +65,12 @@ def cli():
 @cli.command(name='new')
 @click.argument('rom', type=click.Path(exists=True))
 @click.argument('output', type=click.Path())
+@click.option('--fps', default=60, help="frames per second to play")
 @click.option('--frames', default=60 * 60 * 30, help="Maximum number of frames")
 @click.option('--episodes', default=0, help="Maximum number of episodes (game overs)")
 @click.option('--seed', default=0, help="Seed for emulator state")
 @click.option('--snapshot_interval', default=1800, help="Interval (in timesteps) to snapshot emulator state")
-def record_new(rom, output, frames, episodes, seed, snapshot_interval):
+def record_new(rom, output, fps, frames, episodes, seed, snapshot_interval):
     rom_name = os.path.splitext(os.path.split(rom)[-1])[0]
     pygame.init()
     ale = ALE.ALEInterface()
@@ -79,16 +80,16 @@ def record_new(rom, output, frames, episodes, seed, snapshot_interval):
     ale.setBool('display_screen', True)
     ale.loadROM(rom)
     demo = Demonstration(rom=rom_name, action_set=ale.getMinimalActionSet())
-    record(ale, demo, output, frames, episodes, snapshot_interval)
+    record(env, demo, output, fps, frames, episodes, snapshot_interval)
 
 @cli.command(name='resume')
 @click.argument('partial_demo', type=click.Path(exists=True))
 @click.argument('rom', type=click.Path(exists=True))
+@click.option('--fps', default=60, help="frames per second to play")
 @click.option('--frames', default=60 * 60 * 30, help="Maximum number of frames")
 @click.option('--episodes', default=0, help="Maximum number of episodes (game overs)")
 @click.option('--snapshot_interval', default=1800, help="Interval (in timesteps) to snapshot emulator state")
-def resume(partial_demo, rom, frames, episodes, snapshot_interval):
-    pygame.init()
+def resume(partial_demo, rom, fps, frames, episodes, snapshot_interval):
     demo = Demonstration.load(partial_demo)
     ale = ALE.ALEInterface()
     ale.setFloat('repeat_action_probability', 0)
@@ -99,9 +100,9 @@ def resume(partial_demo, rom, frames, episodes, snapshot_interval):
     # n.b. needed to preserve state from the original recording, like the seed
     demo.reset_to_latest_snapshot(ale)
     ale.reset_game()
-    record(ale, demo, partial_demo, frames, episodes, snapshot_interval)
+    record(env, demo, partial_demo, fps, frames, episodes, snapshot_interval)
 
-def record(ale, demo, output, num_frames, num_episodes, snapshot_interval):
+def record(env, demo, output, fps, num_frames, num_episodes, snapshot_interval):
     keystates = {key: False for key in keys}
     score = 0
     clock = pygame.time.Clock()
@@ -133,7 +134,7 @@ def record(ale, demo, output, num_frames, num_episodes, snapshot_interval):
                     score = 0
                     time.sleep(5)
                     ale.reset_game()
-            clock.tick(60)
+            clock.tick(fps)
             if len(demo) % 10000 == 0:
                 print 'FPS:', clock.get_fps()
     except KeyboardInterrupt:
