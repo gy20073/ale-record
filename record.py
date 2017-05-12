@@ -127,9 +127,9 @@ def record(env, demo, output, fps, num_frames, num_episodes, snapshot_interval):
                 print("game over, score: {}".format(score))
                 if num_episodes > 0 and episodes >= num_episodes:
                     break
-                print("restarting in 5 seconds")
+                print("restarting in 2 seconds")
                 score = 0
-                time.sleep(5)
+                time.sleep(2)
                 env.reset()
             pygame.display.flip()
             clock.tick(fps)
