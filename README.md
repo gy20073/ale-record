@@ -33,3 +33,10 @@ python record.py new SpaceInvaders invaders.h5 --episodes 10
 ```
 
 will fire up the recorder for 10 episodes of Space Invaders, saving the demonstrations to invaders.h5, with a 30 minute limit on the demonstration time.
+
+# TODO
+
+- switch to recording only actions + initial state snapshot for every episode
+- unpack into full transitions by an offline enrichment script to make it faster and easier to share data
+- generalize to other envs/wrappers
+- de-duplicate with policy recorder in shelhamer/rlfl
