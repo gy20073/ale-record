@@ -41,7 +41,8 @@ def configure_keys(env):
         if pl.K_RIGHT in keys and pl.K_LEFT in keys:
             keys.remove(pl.K_RIGHT)
             keys.remove(pl.K_LEFT)
-        return keys_to_action[tuple(sorted(keys))]
+        # index by canonical keys, or no-op in case of non-minimal combo
+        return keys_to_action.get(tuple(sorted(keys)), 0)
     return keystates_to_action, minimal_keys
 
 def update_keystates(keystates, minimal_keys):
