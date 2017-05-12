@@ -3,7 +3,7 @@
 Clone recursively to pull the future gym and atari-py too:
 
 ```
-git clone --recursive git@github.com:shelhamer/ale-record.git
+git clone --branch dm --recursive  git@github.com:shelhamer/ale-record.git gym-record
 ```
 
 # Installation
