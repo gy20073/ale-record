@@ -5,3 +5,6 @@
 [submodule "atari-py"]
 	path = atari-py
 	url = git@github.com:openai/atari-py.git
+[submodule "ourl"]
+	path = ourl
+	url = git@github.com:shelhamer/ourl.git

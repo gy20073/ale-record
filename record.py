@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import time
 import os
+import numpy as np
 
 import click
 import gym
@@ -8,6 +9,7 @@ import pygame
 import pygame.locals as pl
 
 from demonstration import Demonstration
+from ourl.envs import wrap_deepmind
 
 # taken from gym/util/play.py
 def display_arr(screen, arr, video_size):
@@ -74,6 +76,7 @@ def cli():
 def record_new(rom, output, fps, frames, episodes, seed, snapshot_interval):
     env = gym.make('{}NoFrameskip-v3'.format(rom))
     env.seed(seed)
+    env = wrap_deepmind(env, train=False)
     demo = Demonstration(rom=rom)
     record(env, demo, output, fps, frames, episodes, snapshot_interval)
 
@@ -87,6 +90,7 @@ def record_new(rom, output, fps, frames, episodes, seed, snapshot_interval):
 def resume(partial_demo, rom, fps, frames, episodes, snapshot_interval):
     demo = Demonstration.load(partial_demo)
     env = gym.make('{}NoFrameskip-v3'.format(rom))
+    env = wrap_deepmind(env, train=False)
     # restore snapshot from original recording + begin new episode
     # n.b. needed to preserve state from the original recording, like the seed
     demo.reset_to_latest_snapshot(env)
@@ -106,7 +110,11 @@ def record(env, demo, output, fps, num_frames, num_episodes, snapshot_interval):
     try:
         while len(demo) < num_frames:
             # update recording interface
-            display_arr(screen, obs, env.observation_space.shape[:2])
+            disp_obs = obs.copy()
+            if disp_obs.shape[-1] > 3:
+                disp_obs = disp_obs[..., -1]
+                disp_obs = np.tile(disp_obs[..., np.newaxis], (1, 1, 3))
+            display_arr(screen, disp_obs, env.observation_space.shape[:2])
             update_keystates(keystates, minimal_keys)
             action = keys_to_action(keystates)
             # collect data
