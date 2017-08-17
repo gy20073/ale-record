@@ -1,5 +1,6 @@
 import numpy as np
 import h5py
+import pickle
 
 from collections import namedtuple
 
@@ -18,12 +19,13 @@ class Demonstration(object):
         self.terminals = []
         self.lives = []
         self.snapshots = {}
+        self.infos = []
 
-    def record_timestep(self, screen_rgb, action, reward, lives):
+    def record_timestep(self, screen_rgb, action, reward, lives, info=None):
         self.states.append(screen_rgb)
         # record action as index, instead of absolute ALE action
         if action in self.action_set:
-            action = self.action_set.index(action)
+            action = self.action_set.tolist().index(action)
         else:
             # TODO(shelhamer) check that all non-minimal actions are no-ops
             action = 0
@@ -31,6 +33,7 @@ class Demonstration(object):
         self.rewards.append(reward)
         self.terminals.append(False)
         self.lives.append(lives)
+        self.infos.append(info)
 
     def end_episode(self):
         # TODO(shelhamer) save episode at a time?
@@ -61,15 +64,19 @@ class Demonstration(object):
             terminal = f.create_dataset('terminal', (len(self), ), dtype='b', data=np.array(self.terminals))
             lives = f.create_dataset('lives', (len(self), ), dtype='uint8', data=np.array(self.lives))
             # emulator state
-            snapshot = f.create_dataset('snapshot', (len(self.snapshots), ) + self.snapshots.values()[0].shape, dtype='uint8', data=np.array(self.snapshots.values()))
-            snapshot_t = f.create_dataset('snapshot_t', (len(self.snapshots), ), dtype='uint32', data=np.array(self.snapshots.keys()))
+            # Yang: don't save snapshots
+            #snapshot = f.create_dataset('snapshot', (len(self.snapshots), ) + self.snapshots.values()[0].shape, dtype='uint8', data=np.array(self.snapshots.values()))
+            #snapshot_t = f.create_dataset('snapshot_t', (len(self.snapshots), ), dtype='uint32', data=np.array(self.snapshots.keys()))
+        pickle.dump(self.infos, open(path+".p", 'wb'))
 
     def snapshot(self, ale):
+        print "not supposed to use"
         state_ptr = ale.cloneSystemState()
         self.snapshots[len(self)] = ale.encodeState(state_ptr)
         ale.deleteState(state_ptr)
 
     def restore_timestep(self, ale, t):
+        print "not supposed to use"
         """
         Restore the emulator to a certain time step of the demonstration.
         N.B. Restoring the system state does not give a valid RAM or screen
@@ -85,9 +92,11 @@ class Demonstration(object):
             ale.act(self.actions[idx])
 
     def reset_to_timestep(self, t):
+        '''
         for key in self.snapshots.keys():
             if key > t:
                 del self.snapshots[key]
+        '''
         del self.states[t:]
         del self.actions[t:]
         del self.rewards[t:]
@@ -95,6 +104,7 @@ class Demonstration(object):
         del self.lives[t:]
 
     def reset_to_latest_snapshot(self, ale):
+        print "not supposed to use"
         latest = max(self.snapshots.keys())
         self.reset_to_timestep(latest)
         state_enc = self.snapshots[latest]
@@ -129,7 +139,9 @@ class Demonstration(object):
             demo.rewards = list(f['R'])
             demo.terminals = list(f['terminal'])
             demo.lives = list(f['lives'])
-            demo.snapshots = dict(zip(list(f['snapshot_t']), list(f['snapshot'])))
+            # Yang: don't save snapshots
+            #demo.snapshots = dict(zip(list(f['snapshot_t']), list(f['snapshot'])))
+        demo.infos = pickle.load(open(path+".p", "rb"))
         return demo
 
     @staticmethod

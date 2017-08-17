@@ -66,3 +66,6 @@ target/
 # ALE
 roms/
 *.pkl
+
+.idea
+*h5*
