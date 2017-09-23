@@ -69,3 +69,5 @@ roms/
 
 .idea
 *h5*
+*zip
+.DS_Store

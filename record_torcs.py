@@ -85,7 +85,7 @@ def record_new(rom, output, game_config, frames, episodes, snapshot_interval):
         entry_point='py_torcs:TorcsEnv',
         kwargs={"subtype": "discrete_improved",
                 "server": True,
-                "auto_back": False,
+                "auto_back": True, #"auto_back": False,
                 "game_config": game_config,
                 "custom_reward": "reward_ben",
                 "detailed_info": True}
@@ -112,6 +112,7 @@ def record(env, demo, output, num_frames, num_episodes, snapshot_interval, last_
 
             action = keystates_to_ale_action(keystates)
             last_obs_original, reward, terminal, info = env.step(action)
+            print reward, 
             if len(demo)+1 == num_frames:
                 terminal = True
 
